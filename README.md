@@ -5,8 +5,10 @@ An Android app for analyzing running form using ML-powered pose detection.
 ## Features
 
 - **Camera & Gallery Support** - Take a photo or select from gallery
+- **Image Cropping** - Crop images to focus on the subject
 - **Automatic Pose Detection** - Uses Google ML Kit to detect body pose
 - **Interactive Skeleton Overlay** - Drag joints to fine-tune positions
+- **Magnifier Loupe** - Precision crosshair when adjusting joints
 - **Segment Locking** - Lock body proportions while adjusting pose angles
 - **Pinch to Zoom** - Zoom in for precise adjustments
 

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'analysis_screen.dart';
 
 /// Provider for the selected image
@@ -18,6 +19,26 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
   final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
 
+  Future<XFile?> _cropImage(String sourcePath) async {
+    final croppedFile = await ImageCropper().cropImage(
+      sourcePath: sourcePath,
+      uiSettings: [
+        AndroidUiSettings(
+          toolbarTitle: 'Crop Image',
+          toolbarColor: Theme.of(context).colorScheme.primary,
+          toolbarWidgetColor: Theme.of(context).colorScheme.onPrimary,
+          activeControlsWidgetColor: Theme.of(context).colorScheme.primary,
+          initAspectRatio: CropAspectRatioPreset.original,
+          lockAspectRatio: false,
+        ),
+        IOSUiSettings(
+          title: 'Crop Image',
+        ),
+      ],
+    );
+    return croppedFile != null ? XFile(croppedFile.path) : null;
+  }
+
   Future<void> _pickFromCamera() async {
     setState(() => _isLoading = true);
     try {
@@ -28,7 +49,11 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
         imageQuality: 85,
       );
       if (photo != null) {
-        ref.read(selectedImageProvider.notifier).state = photo;
+        // Crop the image before storing
+        final croppedImage = await _cropImage(photo.path);
+        if (croppedImage != null && mounted) {
+          ref.read(selectedImageProvider.notifier).state = croppedImage;
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -53,7 +78,11 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
         imageQuality: 85,
       );
       if (image != null) {
-        ref.read(selectedImageProvider.notifier).state = image;
+        // Crop the image before storing
+        final croppedImage = await _cropImage(image.path);
+        if (croppedImage != null && mounted) {
+          ref.read(selectedImageProvider.notifier).state = croppedImage;
+        }
       }
     } catch (e) {
       if (mounted) {

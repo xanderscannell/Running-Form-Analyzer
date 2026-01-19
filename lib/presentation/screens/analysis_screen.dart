@@ -13,6 +13,9 @@ final skeletonProvider = StateProvider<Skeleton?>((ref) => null);
 /// Provider for pose detection loading state
 final isDetectingProvider = StateProvider<bool>((ref) => false);
 
+/// Provider for skeleton visibility state
+final skeletonVisibleProvider = StateProvider<bool>((ref) => true);
+
 class AnalysisScreen extends ConsumerStatefulWidget {
   final String imagePath;
 
@@ -30,19 +33,31 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
       TransformationController();
   late final PoseDetectionRepository _poseDetectionRepository;
   Size? _imageSize;
+  double _currentScale = 1.0;
 
   @override
   void initState() {
     super.initState();
     _poseDetectionRepository = PoseDetectionRepository();
+    _transformationController.addListener(_onTransformChanged);
     _loadImageAndDetectPose();
   }
 
   @override
   void dispose() {
+    _transformationController.removeListener(_onTransformChanged);
     _transformationController.dispose();
     _poseDetectionRepository.dispose();
     super.dispose();
+  }
+
+  void _onTransformChanged() {
+    final scale = _transformationController.value.getMaxScaleOnAxis();
+    if (scale != _currentScale) {
+      setState(() {
+        _currentScale = scale;
+      });
+    }
   }
 
   Future<void> _loadImageAndDetectPose() async {
@@ -134,11 +149,23 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
   Widget build(BuildContext context) {
     final skeleton = ref.watch(skeletonProvider);
     final isDetecting = ref.watch(isDetectingProvider);
+    final isSkeletonVisible = ref.watch(skeletonVisibleProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Analyze'),
         actions: [
+          // Visibility toggle
+          IconButton(
+            icon: Icon(
+              isSkeletonVisible ? Icons.visibility : Icons.visibility_off,
+            ),
+            onPressed: skeleton != null && !isDetecting
+                ? () => ref.read(skeletonVisibleProvider.notifier).state =
+                    !isSkeletonVisible
+                : null,
+            tooltip: isSkeletonVisible ? 'Hide skeleton' : 'Show skeleton',
+          ),
           // Segment lock toggle
           IconButton(
             icon: Icon(
@@ -178,12 +205,13 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
                         ),
 
                         // Skeleton overlay
-                        if (skeleton != null && !isDetecting)
+                        if (skeleton != null && !isDetecting && isSkeletonVisible)
                           Positioned.fill(
                             child: SkeletonOverlay(
                               skeleton: skeleton,
                               imageSize: _imageSize!,
                               onJointMoved: _onJointMoved,
+                              zoomScale: _currentScale,
                             ),
                           ),
                       ],

@@ -10,12 +10,14 @@ class SkeletonPainter extends CustomPainter {
   final Size imageSize;
   final Size containerSize;
   final JointType? activeJoint;
+  final double zoomScale;
 
   SkeletonPainter({
     required this.skeleton,
     required this.imageSize,
     required this.containerSize,
     this.activeJoint,
+    this.zoomScale = 1.0,
   });
 
   @override
@@ -28,9 +30,12 @@ class SkeletonPainter extends CustomPainter {
   }
 
   void _drawConnections(Canvas canvas) {
+    // Apply inverse zoom to maintain constant visual size
+    final inverseScale = 1.0 / zoomScale;
+
     final linePaint = Paint()
-      ..color = AppColors.connectionLine
-      ..strokeWidth = 4.0
+      ..color = AppColors.connectionLine.withValues(alpha: 0.8)
+      ..strokeWidth = 4.0 * inverseScale
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.stroke;
 
@@ -56,8 +61,12 @@ class SkeletonPainter extends CustomPainter {
   }
 
   void _drawJoints(Canvas canvas) {
-    const jointRadius = 10.0;
-    const activeJointRadius = 14.0;
+    // Apply inverse zoom to maintain constant visual size
+    final inverseScale = 1.0 / zoomScale;
+    final jointRadius = 10.0 * inverseScale;
+    final activeJointRadius = 14.0 * inverseScale;
+    final borderWidth = 3.0 * inverseScale;
+    final glowRadius = 8.0 * inverseScale;
 
     for (final joint in skeleton.visibleJoints) {
       final screenPos = CoordinateUtils.normalizedToScreenWithFit(
@@ -83,21 +92,21 @@ class SkeletonPainter extends CustomPainter {
       final borderPaint = Paint()
         ..color = Colors.white
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 3.0;
+        ..strokeWidth = borderWidth;
       canvas.drawCircle(screenPos, radius, borderPaint);
 
-      // Draw filled circle
+      // Draw filled circle (semi-transparent to see image underneath)
       final fillPaint = Paint()
-        ..color = jointColor
+        ..color = jointColor.withValues(alpha: 0.6)
         ..style = PaintingStyle.fill;
-      canvas.drawCircle(screenPos, radius - 1.5, fillPaint);
+      canvas.drawCircle(screenPos, radius - (1.5 * inverseScale), fillPaint);
 
       // Draw shadow/glow for active joint
       if (isActive) {
         final glowPaint = Paint()
           ..color = jointColor.withValues(alpha: 0.3)
           ..style = PaintingStyle.fill;
-        canvas.drawCircle(screenPos, radius + 8, glowPaint);
+        canvas.drawCircle(screenPos, radius + glowRadius, glowPaint);
       }
     }
   }
@@ -106,6 +115,7 @@ class SkeletonPainter extends CustomPainter {
   bool shouldRepaint(SkeletonPainter oldDelegate) {
     return oldDelegate.skeleton != skeleton ||
         oldDelegate.activeJoint != activeJoint ||
-        oldDelegate.containerSize != containerSize;
+        oldDelegate.containerSize != containerSize ||
+        oldDelegate.zoomScale != zoomScale;
   }
 }
