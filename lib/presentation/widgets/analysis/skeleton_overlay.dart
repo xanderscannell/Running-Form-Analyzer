@@ -25,7 +25,6 @@ class SkeletonOverlay extends StatefulWidget {
 
 class _SkeletonOverlayState extends State<SkeletonOverlay> {
   JointType? _activeJoint;
-  Offset? _currentDragPosition;
 
   @override
   Widget build(BuildContext context) {
@@ -59,12 +58,26 @@ class _SkeletonOverlayState extends State<SkeletonOverlay> {
               ),
             ),
 
-            // Magnifier loupe when dragging
-            if (_activeJoint != null && _currentDragPosition != null)
-              Positioned(
-                left: _currentDragPosition!.dx - 50,
-                top: _currentDragPosition!.dy - 120,
-                child: _buildMagnifier(containerSize),
+            // Magnifier loupe when dragging - positioned over the node, not the finger
+            if (_activeJoint != null)
+              Builder(
+                builder: (context) {
+                  // Get the actual node position from the skeleton
+                  final activeJointData = widget.skeleton.joints[_activeJoint];
+                  if (activeJointData == null) return const SizedBox.shrink();
+
+                  final nodeScreenPos = CoordinateUtils.normalizedToScreenWithFit(
+                    activeJointData.position,
+                    widget.imageSize,
+                    containerSize,
+                  );
+
+                  return Positioned(
+                    left: nodeScreenPos.dx - 50,
+                    top: nodeScreenPos.dy - 120,
+                    child: _buildMagnifier(containerSize, nodeScreenPos),
+                  );
+                },
               ),
           ],
         );
@@ -72,11 +85,18 @@ class _SkeletonOverlayState extends State<SkeletonOverlay> {
     );
   }
 
-  Widget _buildMagnifier(Size containerSize) {
+  Widget _buildMagnifier(Size containerSize, Offset nodeScreenPos) {
+    // The magnifier is positioned at (nodeScreenPos.dx - 50, nodeScreenPos.dy - 120)
+    // So relative to the magnifier's top-left, the node is at (50, 120)
+    // The magnifier center is at (50, 50), so the focal offset from center to node is (0, 70)
+    const magnifierSize = 100.0;
+    // focalPointOffset is from magnifier center to what we want to magnify
+    const focalPointOffset = Offset(0, 70);
+
     return IgnorePointer(
       child: Container(
-        width: 100,
-        height: 100,
+        width: magnifierSize,
+        height: magnifierSize,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: Colors.white,
@@ -96,8 +116,8 @@ class _SkeletonOverlayState extends State<SkeletonOverlay> {
               Positioned.fill(
                 child: RawMagnifier(
                   magnificationScale: 2.5,
-                  focalPointOffset: Offset(0, 70),
-                  size: const Size(100, 100),
+                  focalPointOffset: focalPointOffset,
+                  size: const Size(magnifierSize, magnifierSize),
                   decoration: const MagnifierDecoration(
                     shape: CircleBorder(),
                   ),
@@ -158,7 +178,6 @@ class _SkeletonOverlayState extends State<SkeletonOverlay> {
         // Touch threshold
         setState(() {
           _activeJoint = joint.type;
-          _currentDragPosition = localPosition;
         });
         return;
       }
@@ -169,10 +188,6 @@ class _SkeletonOverlayState extends State<SkeletonOverlay> {
     if (_activeJoint == null) return;
 
     final newScreenPos = details.localPosition;
-
-    setState(() {
-      _currentDragPosition = newScreenPos;
-    });
 
     final normalizedPos = CoordinateUtils.screenToNormalizedWithFit(
       newScreenPos,
@@ -189,7 +204,6 @@ class _SkeletonOverlayState extends State<SkeletonOverlay> {
   void _handlePanEnd() {
     setState(() {
       _activeJoint = null;
-      _currentDragPosition = null;
     });
   }
 }
