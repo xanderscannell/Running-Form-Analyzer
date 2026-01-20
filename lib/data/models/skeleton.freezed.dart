@@ -22,8 +22,11 @@ mixin _$Skeleton {
   bool get isDetected => throw _privateConstructorUsedError;
   bool get segmentLockEnabled => throw _privateConstructorUsedError;
 
-  /// Stored segment lengths (normalized) when lock is enabled
+  /// Stored segment lengths (aspect-corrected) when lock is enabled
   Map<String, double> get segmentLengths => throw _privateConstructorUsedError;
+
+  /// Image aspect ratio (width/height) used for segment length calculations
+  double get imageAspectRatio => throw _privateConstructorUsedError;
   DateTime? get detectedAt => throw _privateConstructorUsedError;
 
   /// Create a copy of Skeleton
@@ -44,6 +47,7 @@ abstract class $SkeletonCopyWith<$Res> {
     bool isDetected,
     bool segmentLockEnabled,
     Map<String, double> segmentLengths,
+    double imageAspectRatio,
     DateTime? detectedAt,
   });
 }
@@ -68,6 +72,7 @@ class _$SkeletonCopyWithImpl<$Res, $Val extends Skeleton>
     Object? isDetected = null,
     Object? segmentLockEnabled = null,
     Object? segmentLengths = null,
+    Object? imageAspectRatio = null,
     Object? detectedAt = freezed,
   }) {
     return _then(
@@ -92,6 +97,10 @@ class _$SkeletonCopyWithImpl<$Res, $Val extends Skeleton>
                 ? _value.segmentLengths
                 : segmentLengths // ignore: cast_nullable_to_non_nullable
                       as Map<String, double>,
+            imageAspectRatio: null == imageAspectRatio
+                ? _value.imageAspectRatio
+                : imageAspectRatio // ignore: cast_nullable_to_non_nullable
+                      as double,
             detectedAt: freezed == detectedAt
                 ? _value.detectedAt
                 : detectedAt // ignore: cast_nullable_to_non_nullable
@@ -117,6 +126,7 @@ abstract class _$$SkeletonImplCopyWith<$Res>
     bool isDetected,
     bool segmentLockEnabled,
     Map<String, double> segmentLengths,
+    double imageAspectRatio,
     DateTime? detectedAt,
   });
 }
@@ -140,6 +150,7 @@ class __$$SkeletonImplCopyWithImpl<$Res>
     Object? isDetected = null,
     Object? segmentLockEnabled = null,
     Object? segmentLengths = null,
+    Object? imageAspectRatio = null,
     Object? detectedAt = freezed,
   }) {
     return _then(
@@ -164,6 +175,10 @@ class __$$SkeletonImplCopyWithImpl<$Res>
             ? _value._segmentLengths
             : segmentLengths // ignore: cast_nullable_to_non_nullable
                   as Map<String, double>,
+        imageAspectRatio: null == imageAspectRatio
+            ? _value.imageAspectRatio
+            : imageAspectRatio // ignore: cast_nullable_to_non_nullable
+                  as double,
         detectedAt: freezed == detectedAt
             ? _value.detectedAt
             : detectedAt // ignore: cast_nullable_to_non_nullable
@@ -182,6 +197,7 @@ class _$SkeletonImpl extends _Skeleton {
     this.isDetected = false,
     this.segmentLockEnabled = false,
     final Map<String, double> segmentLengths = const {},
+    this.imageAspectRatio = 1.0,
     this.detectedAt,
   }) : _joints = joints,
        _connections = connections,
@@ -211,10 +227,10 @@ class _$SkeletonImpl extends _Skeleton {
   @JsonKey()
   final bool segmentLockEnabled;
 
-  /// Stored segment lengths (normalized) when lock is enabled
+  /// Stored segment lengths (aspect-corrected) when lock is enabled
   final Map<String, double> _segmentLengths;
 
-  /// Stored segment lengths (normalized) when lock is enabled
+  /// Stored segment lengths (aspect-corrected) when lock is enabled
   @override
   @JsonKey()
   Map<String, double> get segmentLengths {
@@ -223,12 +239,16 @@ class _$SkeletonImpl extends _Skeleton {
     return EqualUnmodifiableMapView(_segmentLengths);
   }
 
+  /// Image aspect ratio (width/height) used for segment length calculations
+  @override
+  @JsonKey()
+  final double imageAspectRatio;
   @override
   final DateTime? detectedAt;
 
   @override
   String toString() {
-    return 'Skeleton(joints: $joints, connections: $connections, isDetected: $isDetected, segmentLockEnabled: $segmentLockEnabled, segmentLengths: $segmentLengths, detectedAt: $detectedAt)';
+    return 'Skeleton(joints: $joints, connections: $connections, isDetected: $isDetected, segmentLockEnabled: $segmentLockEnabled, segmentLengths: $segmentLengths, imageAspectRatio: $imageAspectRatio, detectedAt: $detectedAt)';
   }
 
   @override
@@ -249,6 +269,8 @@ class _$SkeletonImpl extends _Skeleton {
               other._segmentLengths,
               _segmentLengths,
             ) &&
+            (identical(other.imageAspectRatio, imageAspectRatio) ||
+                other.imageAspectRatio == imageAspectRatio) &&
             (identical(other.detectedAt, detectedAt) ||
                 other.detectedAt == detectedAt));
   }
@@ -261,6 +283,7 @@ class _$SkeletonImpl extends _Skeleton {
     isDetected,
     segmentLockEnabled,
     const DeepCollectionEquality().hash(_segmentLengths),
+    imageAspectRatio,
     detectedAt,
   );
 
@@ -280,6 +303,7 @@ abstract class _Skeleton extends Skeleton {
     final bool isDetected,
     final bool segmentLockEnabled,
     final Map<String, double> segmentLengths,
+    final double imageAspectRatio,
     final DateTime? detectedAt,
   }) = _$SkeletonImpl;
   const _Skeleton._() : super._();
@@ -293,9 +317,13 @@ abstract class _Skeleton extends Skeleton {
   @override
   bool get segmentLockEnabled;
 
-  /// Stored segment lengths (normalized) when lock is enabled
+  /// Stored segment lengths (aspect-corrected) when lock is enabled
   @override
   Map<String, double> get segmentLengths;
+
+  /// Image aspect ratio (width/height) used for segment length calculations
+  @override
+  double get imageAspectRatio;
   @override
   DateTime? get detectedAt;
 

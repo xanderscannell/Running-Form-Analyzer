@@ -132,16 +132,17 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
 
   void _toggleSegmentLock() {
     final currentSkeleton = ref.read(skeletonProvider);
-    if (currentSkeleton == null) return;
+    if (currentSkeleton == null || _imageSize == null) return;
 
     if (currentSkeleton.segmentLockEnabled) {
       // Disable lock
       ref.read(skeletonProvider.notifier).state =
           currentSkeleton.disableSegmentLock();
     } else {
-      // Enable lock - capture current segment lengths
+      // Enable lock - capture current segment lengths with aspect ratio
+      final aspectRatio = _imageSize!.width / _imageSize!.height;
       ref.read(skeletonProvider.notifier).state =
-          currentSkeleton.captureSegmentLengths();
+          currentSkeleton.captureSegmentLengths(aspectRatio);
     }
   }
 

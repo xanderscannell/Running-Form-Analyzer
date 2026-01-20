@@ -14,8 +14,10 @@ class Skeleton with _$Skeleton {
     required List<JointConnection> connections,
     @Default(false) bool isDetected,
     @Default(false) bool segmentLockEnabled,
-    /// Stored segment lengths (normalized) when lock is enabled
+    /// Stored segment lengths (aspect-corrected) when lock is enabled
     @Default({}) Map<String, double> segmentLengths,
+    /// Image aspect ratio (width/height) used for segment length calculations
+    @Default(1.0) double imageAspectRatio,
     DateTime? detectedAt,
   }) = _Skeleton;
 
@@ -78,15 +80,19 @@ class Skeleton with _$Skeleton {
     return '${conn.from.name}-${conn.to.name}';
   }
 
-  /// Calculate distance between two points
-  static double _distance(Offset a, Offset b) {
-    final dx = a.dx - b.dx;
+  /// Calculate distance between two points in aspect-corrected space
+  /// The aspectRatio is width/height of the image
+  static double _distance(Offset a, Offset b, double aspectRatio) {
+    // Scale X coordinates by aspect ratio to get consistent distances
+    // This converts normalized coords to a space where X and Y have equal scale
+    final dx = (a.dx - b.dx) * aspectRatio;
     final dy = a.dy - b.dy;
     return math.sqrt(dx * dx + dy * dy);
   }
 
   /// Capture current segment lengths for locking
-  Skeleton captureSegmentLengths() {
+  /// [aspectRatio] is the image width / height
+  Skeleton captureSegmentLengths(double aspectRatio) {
     final lengths = <String, double>{};
     for (final conn in connections) {
       final fromJoint = joints[conn.from];
@@ -95,12 +101,14 @@ class Skeleton with _$Skeleton {
         lengths[_connectionKey(conn)] = _distance(
           fromJoint.position,
           toJoint.position,
+          aspectRatio,
         );
       }
     }
     return copyWith(
       segmentLengths: lengths,
       segmentLockEnabled: true,
+      imageAspectRatio: aspectRatio,
     );
   }
 
@@ -161,20 +169,30 @@ class Skeleton with _$Skeleton {
     return descendants;
   }
 
-  /// Calculate angle from point a to point b
-  static double _angle(Offset from, Offset to) {
-    return math.atan2(to.dy - from.dy, to.dx - from.dx);
+  /// Calculate angle from point a to point b in aspect-corrected space
+  static double _angle(Offset from, Offset to, double aspectRatio) {
+    final dx = (to.dx - from.dx) * aspectRatio;
+    final dy = to.dy - from.dy;
+    return math.atan2(dy, dx);
   }
 
-  /// Rotate a point around a pivot by a given angle delta
-  static Offset _rotateAround(Offset point, Offset pivot, double angleDelta) {
-    final dx = point.dx - pivot.dx;
-    final dy = point.dy - pivot.dy;
+  /// Rotate a point around a pivot by a given angle delta in aspect-corrected space
+  /// This preserves segment lengths during rotation for non-square images
+  static Offset _rotateAround(Offset point, Offset pivot, double angleDelta, double aspectRatio) {
+    // Convert to aspect-corrected space
+    final dxCorrected = (point.dx - pivot.dx) * aspectRatio;
+    final dyCorrected = point.dy - pivot.dy;
+
+    // Rotate in aspect-corrected space
     final cos = math.cos(angleDelta);
     final sin = math.sin(angleDelta);
+    final rotatedX = dxCorrected * cos - dyCorrected * sin;
+    final rotatedY = dxCorrected * sin + dyCorrected * cos;
+
+    // Convert back to normalized space
     return Offset(
-      pivot.dx + dx * cos - dy * sin,
-      pivot.dy + dx * sin + dy * cos,
+      pivot.dx + rotatedX / aspectRatio,
+      pivot.dy + rotatedY,
     );
   }
 
@@ -229,26 +247,27 @@ class Skeleton with _$Skeleton {
       parentJoint.position,
       newPosition,
       segmentLength,
+      imageAspectRatio,
     );
 
-    // Calculate the rotation angle
-    final oldAngle = _angle(parentJoint.position, oldPosition);
-    final newAngle = _angle(parentJoint.position, constrainedPosition);
+    // Calculate the rotation angle in aspect-corrected space
+    final oldAngle = _angle(parentJoint.position, oldPosition, imageAspectRatio);
+    final newAngle = _angle(parentJoint.position, constrainedPosition, imageAspectRatio);
     final angleDelta = newAngle - oldAngle;
 
     // Update the dragged joint
     updatedJoints[type] = existingJoint.withPosition(constrainedPosition);
 
-    // Rotate all descendants around the dragged joint's NEW position
-    // This maintains their relative angles
+    // Rotate all descendants around the parent joint
+    // This maintains their relative angles and segment lengths in aspect-corrected space
     for (final descendant in _getDescendants(type)) {
       final descJoint = updatedJoints[descendant];
       if (descJoint != null && descJoint.isVisible) {
-        // First, rotate around the parent (same as the dragged joint)
         final rotatedAroundParent = _rotateAround(
           descJoint.position,
           parentJoint.position,
           angleDelta,
+          imageAspectRatio,
         );
         updatedJoints[descendant] = descJoint.withPosition(rotatedAroundParent);
       }
@@ -268,26 +287,32 @@ class Skeleton with _$Skeleton {
   }
 
   /// Constrain otherPos to be exactly targetLength away from anchorPos
+  /// in aspect-corrected space
   static Offset _constrainPosition(
     Offset anchorPos,
     Offset otherPos,
     double targetLength,
+    double aspectRatio,
   ) {
-    final currentDist = _distance(anchorPos, otherPos);
+    final currentDist = _distance(anchorPos, otherPos, aspectRatio);
     if (currentDist < 0.0001) {
       // Points are too close, move in arbitrary direction
-      return Offset(anchorPos.dx + targetLength, anchorPos.dy);
+      // targetLength is in aspect-corrected space, so divide by aspectRatio for X
+      return Offset(anchorPos.dx + targetLength / aspectRatio, anchorPos.dy);
     }
 
-    // Calculate unit vector from anchor to other
-    final dx = otherPos.dx - anchorPos.dx;
-    final dy = otherPos.dy - anchorPos.dy;
-    final unitX = dx / currentDist;
-    final unitY = dy / currentDist;
+    // Calculate direction in aspect-corrected space
+    final dxCorrected = (otherPos.dx - anchorPos.dx) * aspectRatio;
+    final dyCorrected = otherPos.dy - anchorPos.dy;
+
+    // Unit vector in aspect-corrected space
+    final unitX = dxCorrected / currentDist;
+    final unitY = dyCorrected / currentDist;
 
     // Place other point at target distance along the same direction
+    // Convert back from aspect-corrected space to normalized space for X
     return Offset(
-      anchorPos.dx + unitX * targetLength,
+      anchorPos.dx + (unitX * targetLength) / aspectRatio,
       anchorPos.dy + unitY * targetLength,
     );
   }
