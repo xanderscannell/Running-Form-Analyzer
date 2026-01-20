@@ -10,12 +10,14 @@ class SkeletonOverlay extends StatefulWidget {
   final Size imageSize;
   final Function(JointType, Offset) onJointMoved;
   final double zoomScale;
+  final ImageProvider imageProvider;
 
   const SkeletonOverlay({
     super.key,
     required this.skeleton,
     required this.imageSize,
     required this.onJointMoved,
+    required this.imageProvider,
     this.zoomScale = 1.0,
   });
 
@@ -86,12 +88,46 @@ class _SkeletonOverlayState extends State<SkeletonOverlay> {
   }
 
   Widget _buildMagnifier(Size containerSize, Offset nodeScreenPos) {
-    // The magnifier is positioned at (nodeScreenPos.dx - 50, nodeScreenPos.dy - 120)
-    // So relative to the magnifier's top-left, the node is at (50, 120)
-    // The magnifier center is at (50, 50), so the focal offset from center to node is (0, 70)
     const magnifierSize = 100.0;
-    // focalPointOffset is from magnifier center to what we want to magnify
-    const focalPointOffset = Offset(0, 70);
+    const magnificationScale = 2.5;
+
+    // Calculate the image display area within the container (same logic as CoordinateUtils)
+    final imageAspect = widget.imageSize.width / widget.imageSize.height;
+    final containerAspect = containerSize.width / containerSize.height;
+
+    double displayWidth, displayHeight;
+    double offsetX = 0, offsetY = 0;
+
+    if (imageAspect > containerAspect) {
+      displayWidth = containerSize.width;
+      displayHeight = containerSize.width / imageAspect;
+      offsetY = (containerSize.height - displayHeight) / 2;
+    } else {
+      displayHeight = containerSize.height;
+      displayWidth = containerSize.height * imageAspect;
+      offsetX = (containerSize.width - displayWidth) / 2;
+    }
+
+    // Calculate the position within the image (0-1 normalized)
+    final normalizedX = (nodeScreenPos.dx - offsetX) / displayWidth;
+    final normalizedY = (nodeScreenPos.dy - offsetY) / displayHeight;
+
+    // Calculate the offset for the magnified image
+    // We want the node position to appear at the center of the magnifier
+    final magnifiedImageWidth = displayWidth * magnificationScale;
+    final magnifiedImageHeight = displayHeight * magnificationScale;
+
+    // Position in the magnified image
+    final posInMagnified = Offset(
+      normalizedX * magnifiedImageWidth,
+      normalizedY * magnifiedImageHeight,
+    );
+
+    // Offset to center this position in the magnifier
+    final imageOffset = Offset(
+      magnifierSize / 2 - posInMagnified.dx,
+      magnifierSize / 2 - posInMagnified.dy,
+    );
 
     return IgnorePointer(
       child: Container(
@@ -112,15 +148,15 @@ class _SkeletonOverlayState extends State<SkeletonOverlay> {
         child: ClipOval(
           child: Stack(
             children: [
-              // Magnified content using RawMagnifier
-              Positioned.fill(
-                child: RawMagnifier(
-                  magnificationScale: 2.5,
-                  focalPointOffset: focalPointOffset,
-                  size: const Size(magnifierSize, magnifierSize),
-                  decoration: const MagnifierDecoration(
-                    shape: CircleBorder(),
-                  ),
+              // Magnified image only (no skeleton)
+              Positioned(
+                left: imageOffset.dx,
+                top: imageOffset.dy,
+                width: magnifiedImageWidth,
+                height: magnifiedImageHeight,
+                child: Image(
+                  image: widget.imageProvider,
+                  fit: BoxFit.fill,
                 ),
               ),
               // Crosshair overlay

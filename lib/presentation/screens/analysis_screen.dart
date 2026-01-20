@@ -213,6 +213,7 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
                               imageSize: _imageSize!,
                               onJointMoved: _onJointMoved,
                               zoomScale: _currentScale,
+                              imageProvider: FileImage(File(widget.imagePath)),
                             ),
                           ),
                       ],
