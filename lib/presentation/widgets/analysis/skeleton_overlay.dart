@@ -201,7 +201,10 @@ class _SkeletonOverlayState extends State<SkeletonOverlay> {
   void _handlePanStart(DragStartDetails details, Size containerSize) {
     final localPosition = details.localPosition;
 
-    // Find if we're touching a joint
+    // Find the closest joint to the touch point
+    JointType? closestJoint;
+    double closestDistance = double.infinity;
+
     for (final joint in widget.skeleton.visibleJoints) {
       final screenPos = CoordinateUtils.normalizedToScreenWithFit(
         joint.position,
@@ -210,13 +213,16 @@ class _SkeletonOverlayState extends State<SkeletonOverlay> {
       );
 
       final distance = (screenPos - localPosition).distance;
-      if (distance < 30) {
-        // Touch threshold
-        setState(() {
-          _activeJoint = joint.type;
-        });
-        return;
+      if (distance < 30 && distance < closestDistance) {
+        closestDistance = distance;
+        closestJoint = joint.type;
       }
+    }
+
+    if (closestJoint != null) {
+      setState(() {
+        _activeJoint = closestJoint;
+      });
     }
   }
 
