@@ -5,6 +5,7 @@ import 'joint.dart';
 import 'joint_connection.dart';
 
 part 'skeleton.freezed.dart';
+part 'skeleton.g.dart';
 
 /// Represents the complete skeleton/pose with all joints and connections
 @freezed
@@ -74,6 +75,9 @@ class Skeleton with _$Skeleton {
       isDetected: false,
     );
   }
+
+  factory Skeleton.fromJson(Map<String, dynamic> json) =>
+      _$SkeletonFromJson(json);
 
   /// Get a unique key for a connection (for segment length storage)
   static String _connectionKey(JointConnection conn) {

@@ -15,6 +15,10 @@ final _privateConstructorUsedError = UnsupportedError(
   'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models',
 );
 
+Skeleton _$SkeletonFromJson(Map<String, dynamic> json) {
+  return _Skeleton.fromJson(json);
+}
+
 /// @nodoc
 mixin _$Skeleton {
   Map<JointType, Joint> get joints => throw _privateConstructorUsedError;
@@ -28,6 +32,9 @@ mixin _$Skeleton {
   /// Image aspect ratio (width/height) used for segment length calculations
   double get imageAspectRatio => throw _privateConstructorUsedError;
   DateTime? get detectedAt => throw _privateConstructorUsedError;
+
+  /// Serializes this Skeleton to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
 
   /// Create a copy of Skeleton
   /// with the given fields replaced by the non-null parameter values.
@@ -189,7 +196,7 @@ class __$$SkeletonImplCopyWithImpl<$Res>
 }
 
 /// @nodoc
-
+@JsonSerializable()
 class _$SkeletonImpl extends _Skeleton {
   const _$SkeletonImpl({
     required final Map<JointType, Joint> joints,
@@ -203,6 +210,9 @@ class _$SkeletonImpl extends _Skeleton {
        _connections = connections,
        _segmentLengths = segmentLengths,
        super._();
+
+  factory _$SkeletonImpl.fromJson(Map<String, dynamic> json) =>
+      _$$SkeletonImplFromJson(json);
 
   final Map<JointType, Joint> _joints;
   @override
@@ -275,6 +285,7 @@ class _$SkeletonImpl extends _Skeleton {
                 other.detectedAt == detectedAt));
   }
 
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(
     runtimeType,
@@ -294,6 +305,11 @@ class _$SkeletonImpl extends _Skeleton {
   @pragma('vm:prefer-inline')
   _$$SkeletonImplCopyWith<_$SkeletonImpl> get copyWith =>
       __$$SkeletonImplCopyWithImpl<_$SkeletonImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$SkeletonImplToJson(this);
+  }
 }
 
 abstract class _Skeleton extends Skeleton {
@@ -307,6 +323,9 @@ abstract class _Skeleton extends Skeleton {
     final DateTime? detectedAt,
   }) = _$SkeletonImpl;
   const _Skeleton._() : super._();
+
+  factory _Skeleton.fromJson(Map<String, dynamic> json) =
+      _$SkeletonImpl.fromJson;
 
   @override
   Map<JointType, Joint> get joints;

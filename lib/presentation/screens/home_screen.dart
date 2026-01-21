@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'capture_screen.dart';
 import 'joint_config_screen.dart';
+import 'saves_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -55,7 +56,23 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              // Secondary action
+              // Saved analyses
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const SavesScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.folder_open),
+                label: const Text('Saved Analyses'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Joint settings
               OutlinedButton.icon(
                 onPressed: () {
                   Navigator.of(context).push(

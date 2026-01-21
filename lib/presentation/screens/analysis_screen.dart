@@ -4,8 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../widgets/analysis/skeleton_overlay.dart';
 import '../../data/models/skeleton.dart';
 import '../../data/models/joint.dart';
+import '../../data/models/saved_analysis.dart';
 import '../../core/constants/joint_constants.dart';
 import '../../data/repositories/pose_detection_repository.dart';
+import '../../data/repositories/saves_repository.dart';
 
 /// Provider for the current skeleton state
 final skeletonProvider = StateProvider<Skeleton?>((ref) => null);
@@ -18,10 +20,12 @@ final skeletonVisibleProvider = StateProvider<bool>((ref) => true);
 
 class AnalysisScreen extends ConsumerStatefulWidget {
   final String imagePath;
+  final SavedAnalysis? savedAnalysis;
 
   const AnalysisScreen({
     super.key,
     required this.imagePath,
+    this.savedAnalysis,
   });
 
   @override
@@ -34,12 +38,15 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
   late final PoseDetectionRepository _poseDetectionRepository;
   Size? _imageSize;
   double _currentScale = 1.0;
+  SavedAnalysis? _currentSavedAnalysis;
+  bool _isSaving = false;
 
   @override
   void initState() {
     super.initState();
     _poseDetectionRepository = PoseDetectionRepository();
     _transformationController.addListener(_onTransformChanged);
+    _currentSavedAnalysis = widget.savedAnalysis;
     _loadImageAndDetectPose();
   }
 
@@ -71,8 +78,13 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
       );
     });
 
-    // Detect pose
-    await _detectPose();
+    // If loading from a saved analysis, use the saved skeleton
+    if (widget.savedAnalysis != null) {
+      ref.read(skeletonProvider.notifier).state = widget.savedAnalysis!.skeleton;
+    } else {
+      // Detect pose for new analysis
+      await _detectPose();
+    }
   }
 
   Future<void> _detectPose() async {
@@ -144,6 +156,106 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
       ref.read(skeletonProvider.notifier).state =
           currentSkeleton.captureSegmentLengths(aspectRatio);
     }
+  }
+
+  Future<void> _saveAnalysis() async {
+    final currentSkeleton = ref.read(skeletonProvider);
+    if (currentSkeleton == null) return;
+
+    // If already saved, just update the skeleton
+    if (_currentSavedAnalysis != null) {
+      if (!mounted) return;
+      setState(() => _isSaving = true);
+      try {
+        final repository = SavesRepository();
+        final updated = _currentSavedAnalysis!.copyWith(skeleton: currentSkeleton);
+        await repository.updateAnalysis(updated);
+        if (!mounted) return;
+        _currentSavedAnalysis = updated;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Analysis updated!')),
+        );
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error saving: $e')),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _isSaving = false);
+      }
+      return;
+    }
+
+    // New save - ask for athlete name
+    final athleteName = await _showSaveDialog();
+    if (athleteName == null || athleteName.isEmpty || !mounted) return;
+
+    setState(() => _isSaving = true);
+
+    try {
+      final repository = SavesRepository();
+      final saved = await repository.saveAnalysis(
+        athleteName: athleteName,
+        sourceImagePath: widget.imagePath,
+        skeleton: currentSkeleton,
+      );
+      if (!mounted) return;
+      _currentSavedAnalysis = saved;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Saved analysis for $athleteName')),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error saving: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  Future<String?> _showSaveDialog() async {
+    String? result;
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        final controller = TextEditingController();
+        return AlertDialog(
+          title: const Text('Save Analysis'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            decoration: const InputDecoration(
+              labelText: 'Athlete Name',
+              hintText: 'Enter athlete name',
+            ),
+            textCapitalization: TextCapitalization.words,
+            onSubmitted: (value) {
+              result = value;
+              Navigator.of(dialogContext).pop();
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                result = controller.text;
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+
+    return result;
   }
 
   @override
@@ -260,14 +372,18 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: FilledButton.icon(
-                  onPressed: () {
-                    // TODO: Implement save/export
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Save feature coming soon!')),
-                    );
-                  },
-                  icon: const Icon(Icons.save),
-                  label: const Text('Save'),
+                  onPressed: isDetecting || _isSaving ? null : _saveAnalysis,
+                  icon: _isSaving
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.save),
+                  label: Text(_isSaving ? 'Saving...' : 'Save'),
                 ),
               ),
             ],

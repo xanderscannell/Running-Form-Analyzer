@@ -15,10 +15,17 @@ final _privateConstructorUsedError = UnsupportedError(
   'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models',
 );
 
+JointConnection _$JointConnectionFromJson(Map<String, dynamic> json) {
+  return _JointConnection.fromJson(json);
+}
+
 /// @nodoc
 mixin _$JointConnection {
   JointType get from => throw _privateConstructorUsedError;
   JointType get to => throw _privateConstructorUsedError;
+
+  /// Serializes this JointConnection to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
 
   /// Create a copy of JointConnection
   /// with the given fields replaced by the non-null parameter values.
@@ -110,9 +117,12 @@ class __$$JointConnectionImplCopyWithImpl<$Res>
 }
 
 /// @nodoc
-
+@JsonSerializable()
 class _$JointConnectionImpl implements _JointConnection {
   const _$JointConnectionImpl({required this.from, required this.to});
+
+  factory _$JointConnectionImpl.fromJson(Map<String, dynamic> json) =>
+      _$$JointConnectionImplFromJson(json);
 
   @override
   final JointType from;
@@ -133,6 +143,7 @@ class _$JointConnectionImpl implements _JointConnection {
             (identical(other.to, to) || other.to == to));
   }
 
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(runtimeType, from, to);
 
@@ -146,6 +157,11 @@ class _$JointConnectionImpl implements _JointConnection {
         this,
         _$identity,
       );
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$JointConnectionImplToJson(this);
+  }
 }
 
 abstract class _JointConnection implements JointConnection {
@@ -153,6 +169,9 @@ abstract class _JointConnection implements JointConnection {
     required final JointType from,
     required final JointType to,
   }) = _$JointConnectionImpl;
+
+  factory _JointConnection.fromJson(Map<String, dynamic> json) =
+      _$JointConnectionImpl.fromJson;
 
   @override
   JointType get from;
