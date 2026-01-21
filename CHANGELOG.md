@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-01-21
+
+### Added
+- **Saved Analyses** - Save pose analyses with athlete names for later review
+- **Saves Screen** - New screen accessible from home to view all saved analyses
+- **Search** - Filter saved analyses by athlete name
+- **Edit Athlete Name** - Rename athletes after saving
+- **Delete Analyses** - Remove saved analyses with confirmation dialog
+- **Persistent Storage** - Analyses saved to device storage (survives app restarts)
+- **Thumbnail Previews** - Visual previews in saved analyses list
+
+### Fixed
+- Joint selection now picks the closest joint when multiple joints are near the touch point
+
+---
+
 ## [0.2.1] - 2026-01-20
 
 ### Fixed

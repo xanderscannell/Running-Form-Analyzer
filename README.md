@@ -11,6 +11,8 @@ An Android app for analyzing running form using ML-powered pose detection.
 - **Magnifier Loupe** - Precision crosshair when adjusting joints
 - **Segment Locking** - Lock body proportions while adjusting pose angles
 - **Pinch to Zoom** - Zoom in for precise adjustments
+- **Save & Load Analyses** - Persist analyses with athlete names for later review
+- **Search Saved Analyses** - Filter saved analyses by athlete name
 
 ## How It Works
 
@@ -19,6 +21,8 @@ An Android app for analyzing running form using ML-powered pose detection.
 3. Drag any joint to adjust its position
 4. Use the lock icon to maintain body segment lengths while rotating joints
 5. Use the refresh icon to re-detect the original pose
+6. Save the analysis with an athlete name for future reference
+7. Access saved analyses from the home screen
 
 ## Tech Stack
 
